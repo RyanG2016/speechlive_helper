@@ -35,6 +35,7 @@ namespace SpeechLiveUploader
             CreateLogs(DateTime.Now.ToString() + " Application Started.");
         }
 
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             //while (!stoppingToken.IsCancellationRequested)
@@ -51,14 +52,40 @@ namespace SpeechLiveUploader
             //}
         }
 
+        /// <summary>
+        /// Generates a timestamped file name based on the provided file path.
+        /// The file name is composed of the original name without extension,
+        /// followed by the current date and time, and the original extension.
+        /// </summary>
+        /// <param name="filePath">The original file path to generate the timestamped name from.</param>
+        /// <returns>A string representing the new file name with a timestamp.</returns>
+        private string GenerateTimestampedFileName(string filePath)
+        {
+            string name = Path.GetFileNameWithoutExtension(filePath);
+            string ext = Path.GetExtension(filePath);
+            string timestamp = DateTime.Now.ToString("ddMMyy_HHmmss");
+            return $"{name}_{timestamp}{ext}";
+        }
+
+        /// <summary>
+        /// Reads the configuration files and processes the files in the specified folder.
+        /// </summary>
+        /// <param name="DSFilesPath">The path to the folder containing the files to process.</param>
+        /// <remarks>
+        /// This function reads the configuration files and processes the files in the specified folder.
+        /// It handles both .ds2 and .dss files.
+        /// If the file is valid, it calls the API with the appropriate parameters and handles the response.
+        /// If the file is invalid, it moves the file to the error folder.
+        /// </remarks>
         async void ReadINIFiles(string DSFilesPath)
         {
             List<string> users = new List<string>();
-            string configurationPath = ManageFiles.ConfigurationPath; //@"C:\\Speech Live Files\Sample_Local_Configuration.ini";
-            //string DSFilesPath = @"F:\\Speech Live Files\";
-            string workingFolderPath = ManageFiles.WorkingFolderPath; //System.IO.Directory.GetCurrentDirectory() + "\\Working";
+            string configurationPath = ManageFiles.ConfigurationPath;
+            string workingFolderPath = ManageFiles.WorkingFolderPath;
             string AuthorId = "";
-            DateTime dateTime;
+            bool hasError = false;
+
+
             try
             {
                 IniFile iniFile = new IniFile(configurationPath);
@@ -67,293 +94,219 @@ namespace SpeechLiveUploader
                 LocalConfig.APP_Identifier = iniFile.Read("APP_Identifier", "Config");
                 LocalConfig.Delete_Files_After_Upload = iniFile.Read("Delete_Files_After_Upload", "Config").ToLower();
                 LocalConfig.Drive_Letter_To_Monitor = iniFile.Read("Drive_Letter_To_Monitor", "Config");
-                dateTime = DateTime.Now;
-                string Info = dateTime.ToString() + " Configuration File Read.";
-                CreateLogs(Info);
+                CreateLogs(DateTime.Now.ToString() + " Configuration File Read.");
             }
             catch
             {
+                hasError = true;
                 CreateLogs(DateTime.Now.ToString() + " Configuration File Not Found.");
             }
 
             try
             {
                 IniFile iniFile = new IniFile(LocalConfig.Central_Config_UNC);
-                dateTime = DateTime.Now;
-                string Info1 = dateTime.ToString() + " Central Configuration File Found And Loaded.";
-                CreateLogs(Info1);
+                CreateLogs(DateTime.Now.ToString() + " Central Configuration File Found And Loaded.");
                 CentralConfig.API_Bearer = iniFile.Read("API_Bearer", "Config");
                 CentralConfig.API_UserAgent = iniFile.Read("API_UserAgent", "Config");
                 CentralConfig.API_Tenant = iniFile.Read("API_Tenant", "Config");
                 CentralConfig.User1 = iniFile.Read("7777", "Users");
                 CentralConfig.User2 = iniFile.Read("7765", "Users");
-                users = new IniFile(LocalConfig.Central_Config_UNC).GetUsers();
-                CentralConfig.API_Bearer = new IniFile(LocalConfig.Central_Config_UNC).GetToken().Split('=', (StringSplitOptions)0)[1].ToString();
-                dateTime = DateTime.Now;
-                string Info2 = dateTime.ToString() + " Central Configuration Read.";
-                CreateLogs(Info2);
+                users = iniFile.GetUsers();
+                CentralConfig.API_Bearer = iniFile.GetToken().Split('=')[1];
+                CreateLogs(DateTime.Now.ToString() + " Central Configuration Read.");
             }
             catch
             {
+                hasError = true;
                 CreateLogs(DateTime.Now.ToString() + " Central Configuration File Not Found.");
             }
 
-
             var GetDs2Files = new ManageFiles().GetDs2Files(DSFilesPath);
             var GetDssFiles = new ManageFiles().GetDsFiles(DSFilesPath);
-            string[] strArray;
-            int index;
 
-            //check for ds2 files
+            // === Handle DS2 Files ===
             if (GetDs2Files.Length > 0)
             {
-                CreateLogs(DateTime.Now.ToString() + " Connected device contain supported file formats (ds2)");
+                CreateLogs(DateTime.Now.ToString() + " Connected device contains one or more files with supported file formats (ds2)");
                 foreach (var ds2 in GetDs2Files)
                 {
                     try
                     {
-                        string fileName = DateTime.Now.Date.ToString("MMddyyyy") + DateTime.Now.Ticks +  Path.GetFileName(ds2);
+                        string fileName = GenerateTimestampedFileName(ds2);
                         var objm = ManageFiles.ExtractMetadata(ds2);
-                        CreateLogs(DateTime.Now.ToString() + " " + objm.Author);
-                        CreateLogs(DateTime.Now.ToString() + " " + objm.WorkType);
+                        CreateLogs($"Author: {objm.Author}");
+                        CreateLogs($"Worktype: {objm.WorkType}");
+                        CreateLogs($"Device ID: {objm.DeviceId}");
 
-                        if (users != null)
-                        {
-                            foreach (string str in users)
-                            {
-                                string[] parts = str.Split('=', StringSplitOptions.None);
-                                if (parts[0] == objm.Author)
-                                {
-                                    AuthorId = parts[1];
-                                    break;
-                                }
-                            }
-                        }
+                        AuthorId = users.FirstOrDefault(u => u.StartsWith(objm.Author + "="))?.Split('=')[1] ?? "";
 
-                        if (AuthorId != "")
+                        if (!string.IsNullOrEmpty(AuthorId))
                         {
                             try
                             {
-                                dateTime = DateTime.Now;
-                                dateTime = dateTime.Date;
-                                string str1 = dateTime.ToString("MMddyyyy");
-                                dateTime = DateTime.Now;
-                                string str2 = dateTime.Ticks.ToString();
-                                string fileName1 = Path.GetFileName(ds2);
-                                fileName = str1 + str2 + fileName1;
-                                dateTime = DateTime.Now;
-                                string Info6 = dateTime.ToString() + " Calling Api";
-                                CreateLogs(Info6);
+                                CreateLogs(DateTime.Now.ToString() + " Calling Api");
                                 string response = "";
-                                await Task.Run((Func<Task>)(async () =>
+
+                                await Task.Run(async () =>
                                 {
-                                    File.Copy(ds2, workingFolderPath + @"\" + fileName, true);
+                                    File.Copy(ds2, Path.Combine(workingFolderPath, fileName), true);
                                     CreateLogs(DateTime.Now.ToString() + ds2 + " copied from device to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
-                                    response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, workingFolderPath + "\\" + fileName);
+                                    response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
                                     CreateLogs(DateTime.Now.ToString() + " Api response : " + response);
-                                    DateTime now;
+
                                     if (response.StartsWith("Success"))
                                     {
-                                        now = DateTime.Now;
-                                        CreateLogs(now.ToString() + ds2 + " copied from device to application");
+                                        CreateLogs(DateTime.Now.ToString() + ds2 + " successfully processed.");
                                     }
                                     else
                                     {
-                                        now = DateTime.Now;
-                                        this.CreateLogs(now.ToString() + ds2 + " found error for this file while calling api , check error folder.");
-                                        File.Copy(ds2, ManageFiles.ErrorFolderPath + "\\" + fileName, true);
-                                        File.Delete(workingFolderPath + "\\" + fileName);
-                                        now = DateTime.Now;
-                                        this.CreateLogs(now.ToString() + ds2 + " copied from device to error folder.");
+                                        hasError = true;
+                                        CreateLogs(DateTime.Now.ToString() + ds2 + " found error for this file while calling api, check error folder.");
+                                        File.Copy(ds2, Path.Combine(ManageFiles.ErrorFolderPath, fileName), true);
+                                        File.Delete(Path.Combine(workingFolderPath, fileName));
+                                        CreateLogs(DateTime.Now.ToString() + ds2 + " copied from device to error folder.");
                                     }
-                                    if (LocalConfig.Delete_Files_After_Upload != "true")
-                                        return;
-                                    
-                                    now = DateTime.Now;
-                                    this.CreateLogs(now.ToString() + ds2 + " file delete from external device.");
-                                    File.Delete(ds2);
-                                }));
+
+                                    if (LocalConfig.Delete_Files_After_Upload == "true")
+                                    {
+                                        File.Delete(ds2);
+                                        CreateLogs(DateTime.Now.ToString() + ds2 + " file deleted from external device.");
+                                    }
+                                });
                             }
                             catch
                             {
-                                CreateLogs(DateTime.Now.ToString() + ds2 + " doesn’t copied from device to application");
+                                hasError = true;
+                                CreateLogs(DateTime.Now.ToString() + ds2 + " doesnï¿½t copied from device to application");
                             }
                         }
                         else
                         {
-                            dateTime = DateTime.Now;
-                            string Info7 = dateTime.ToString() + ds2 + " invalid author record found, check error folder.";
-                            CreateLogs(Info7);
-                            dateTime = DateTime.Now;
-                            dateTime = dateTime.Date;
-                            string str3 = dateTime.ToString("MMddyyyy");
-                            dateTime = DateTime.Now;
-                            string str4 = dateTime.Ticks.ToString();
-                            fileName = Path.GetFileName(ds2);
-                            string str5 = str3 + str4 + fileName;
-                            File.Copy(ds2, ManageFiles.ErrorFolderPath + "\\" + str5, true);
-                            dateTime = DateTime.Now;
-                            string Info8 = dateTime.ToString() + ds2 + " copied from device to error folder.";
-                            CreateLogs(Info8);
+                            hasError = true;
+                            string errorFileName = GenerateTimestampedFileName(ds2);
+                            CreateLogs(DateTime.Now.ToString() + ds2 + " invalid author record found, check error folder.");
+                            File.Copy(ds2, Path.Combine(ManageFiles.ErrorFolderPath, errorFileName), true);
+                            CreateLogs(DateTime.Now.ToString() + ds2 + " copied from device to error folder.");
+
                             if (LocalConfig.Delete_Files_After_Upload == "true")
                             {
-                                dateTime = DateTime.Now;
-                                string Info9 = dateTime.ToString() + ds2 + " file delete from external device.";
-                                CreateLogs(Info9);
                                 File.Delete(ds2);
+                                CreateLogs(DateTime.Now.ToString() + ds2 + " file deleted from external device.");
                             }
-                            strArray = null;
-                        }      
-
-                        if (LocalConfig.Delete_Files_After_Upload == "true") {
-                            CreateLogs(DateTime.Now.ToString() + ds2 + " file delete from external device.");
-                            File.Delete(ds2); 
                         }
                     }
                     catch
                     {
-                        CreateLogs(DateTime.Now.ToString() + ds2 + " doesn’t copied from device to application");
-                    }       
-
+                        hasError = true;
+                        CreateLogs(DateTime.Now.ToString() + ds2 + " doesnï¿½t copied from device to application");
+                    }
                 }
-
             }
             else
             {
-                CreateLogs(DateTime.Now.ToString() + " Connected device doesn’t contain supported file formats (ds2)");
+                hasError = true;
+                CreateLogs(DateTime.Now.ToString() + " Connected device doesnï¿½t contain supported file formats (ds2)");
             }
-           
 
-            //check for dss files
+            // === Handle DSS Files ===
             if (GetDssFiles.Length > 0)
             {
-                CreateLogs(DateTime.Now.ToString() + " Connected device contain supported file formats (dss)");
+                CreateLogs(DateTime.Now.ToString() + " Connected device contains supported file formats (dss)");
                 foreach (var dss in GetDssFiles)
                 {
                     try
                     {
                         AuthorId = "";
-                        string fileName = DateTime.Now.Date.ToString("MMddyyyy") + DateTime.Now.Ticks + Path.GetFileName(dss);
+                        string fileName = GenerateTimestampedFileName(dss);
                         var objm = ManageFiles.ExtractMetadata(dss);
-                        CreateLogs(DateTime.Now.ToString() + " " + objm.Author);
-                        CreateLogs(DateTime.Now.ToString() + " " + objm.WorkType);
+                        CreateLogs($"Author: {objm.Author}");
+                        CreateLogs($"Worktype: {objm.WorkType}");
+                        CreateLogs($"Device ID: {objm.DeviceId}");
 
-                        if (users != null)
-                        {
-                            foreach (string str in users)
-                            {
-                                string[] parts = str.Split('=', StringSplitOptions.None);
-                                if (parts[0] == objm.Author)
-                                {
-                                    AuthorId = parts[1];
-                                    break;
-                                }
+                        AuthorId = users.FirstOrDefault(u => u.StartsWith(objm.Author + "="))?.Split('=')[1] ?? "";
 
-                            }
-                        }
-
-                        if (AuthorId != "")
+                        if (!string.IsNullOrEmpty(AuthorId))
                         {
                             try
                             {
-                                dateTime = DateTime.Now;
-                                dateTime = dateTime.Date;
-                                string str1 = dateTime.ToString("MMddyyyy");
-                                dateTime = DateTime.Now;
-                                string str2 = dateTime.Ticks.ToString();
-                                string fileName2 = Path.GetFileName(dss);
-                                fileName = str1 + str2 + fileName2;
-                                dateTime = DateTime.Now;
-                                string Info13 = dateTime.ToString() + " Calling Api";
-                                CreateLogs(Info13);
+                                CreateLogs(DateTime.Now.ToString() + " Calling Api");
                                 string response = "";
 
-                                await Task.Run((Func<Task>)(async () =>
+                                await Task.Run(async () =>
                                 {
-                                    File.Copy(dss, workingFolderPath + @"\" + fileName, true);
+                                    File.Copy(dss, Path.Combine(workingFolderPath, fileName), true);
                                     CreateLogs(DateTime.Now.ToString() + dss + " copied from device to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
-                                    response = await new ApiHelper().PostHistoryAsync(objm.AuthorID, "0", objm.WorkType, objm.DeviceId, workingFolderPath + @"\" + fileName);
+                                    response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
                                     CreateLogs(DateTime.Now.ToString() + " Api response : " + response);
-                                    DateTime now;
+
                                     if (response.StartsWith("Success"))
                                     {
-                                        now = DateTime.Now;
-                                        CreateLogs(now.ToString() + dss+ " copied from device to application");
+                                        CreateLogs(DateTime.Now.ToString() + dss + " successfully processed.");
                                     }
                                     else
                                     {
-                                        now = DateTime.Now;
-                                        this.CreateLogs(now.ToString() + dss + " found error for this file while calling api , check error folder.");
-                                        File.Copy(dss, ManageFiles.ErrorFolderPath + "\\" + fileName, true);
-                                        File.Delete(workingFolderPath + "\\" + fileName);
-                                        now = DateTime.Now;
-                                        this.CreateLogs(now.ToString() + dss + " copied from device to error folder.");
+                                        hasError = true;
+                                        CreateLogs(DateTime.Now.ToString() + dss + " found error while calling api, check error folder.");
+                                        File.Copy(dss, Path.Combine(ManageFiles.ErrorFolderPath, fileName), true);
+                                        File.Delete(Path.Combine(workingFolderPath, fileName));
+                                        CreateLogs(DateTime.Now.ToString() + dss + " copied from device to error folder.");
                                     }
-                                    if (LocalConfig.Delete_Files_After_Upload != "true")
-                                        return;
 
-                                    now = DateTime.Now;
-                                    this.CreateLogs(now.ToString() + dss + " file delete from external device.");
-                                    File.Delete(dss);
-                                }));
+                                    if (LocalConfig.Delete_Files_After_Upload == "true")
+                                    {
+                                        File.Delete(dss);
+                                        CreateLogs(DateTime.Now.ToString() + dss + " file deleted from external device.");
+                                    }
+                                });
                             }
                             catch
                             {
-                                CreateLogs(DateTime.Now.ToString() + dss + " doesn’t copied from device to application");
+                                hasError = true;
+                                CreateLogs(DateTime.Now.ToString() + dss + " doesnï¿½t copied from device to application");
                             }
-
                         }
                         else
                         {
-                                dateTime = DateTime.Now;
-                                string Info14 = dateTime.ToString() + dss + " invalid author record found, check error folder.";
-                                CreateLogs(Info14);
-                                dateTime = DateTime.Now;
-                                dateTime = dateTime.Date;
-                                string str8 = dateTime.ToString("MMddyyyy");
-                                dateTime = DateTime.Now;
-                                string str9 = dateTime.Ticks.ToString();
-                                fileName = Path.GetFileName(dss);
-                                string str10 = str8 + str9 + fileName;
-                                File.Copy(dss, ManageFiles.ErrorFolderPath + "\\" + str10, true);
-                                dateTime = DateTime.Now;
-                                string Info15 = dateTime.ToString() + dss + " copied from device to error folder.";
-                                CreateLogs(Info15);
+                            hasError = true;
+                            string errorFileName = GenerateTimestampedFileName(dss);
+                            CreateLogs(DateTime.Now.ToString() + dss + " invalid author record found, check error folder.");
+                            File.Copy(dss, Path.Combine(ManageFiles.ErrorFolderPath, errorFileName), true);
+                            CreateLogs(DateTime.Now.ToString() + dss + " copied from device to error folder.");
 
                             if (LocalConfig.Delete_Files_After_Upload == "true")
                             {
-                                CreateLogs(DateTime.Now.ToString() + dss + " file delete from external device.");
                                 File.Delete(dss);
+                                CreateLogs(DateTime.Now.ToString() + dss + " file deleted from external device.");
                             }
-                            strArray = null;
-
                         }
-
-                      
                     }
                     catch
                     {
-                        CreateLogs(DateTime.Now.ToString() + dss + " doesn’t copied from device to application");
+                        hasError = true;
+                        CreateLogs(DateTime.Now.ToString() + dss + " doesnï¿½t copied from device to application");
                     }
-
                 }
-
             }
             else
-                CreateLogs(DateTime.Now.ToString() + " Connected device doesn’t contain supported file formats (dss)");
+            {
+                hasError = true;
+                CreateLogs(DateTime.Now.ToString() + " Connected device doesnï¿½t contain supported file formats (dss)");
+            }
 
+            // === Final Audio Cue ===
+            string soundPath = hasError ? ManageFiles.ErrorSoundPath : ManageFiles.ProcessCompletePath;
+            Process.Start("powershell", $@"-c (New-Object Media.SoundPlayer '{soundPath}').PlaySync();");
 
-            //play process complete sound.
-            Process.Start(@"powershell", $@"-c (New-Object Media.SoundPlayer '{ManageFiles.ProcessCompletePath}').PlaySync();");
             users = null;
             GetDs2Files = null;
             GetDssFiles = null;
         }
-       async void CheckForEvents()
+
+        async void CheckForEvents()
         {
 
             IUsbEventWatcher usbEventWatcher = new UsbEventWatcher();
