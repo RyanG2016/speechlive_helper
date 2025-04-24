@@ -109,10 +109,10 @@ namespace SpeechLiveUploader
                 CentralConfig.API_Bearer = iniFile.Read("API_Bearer", "Config");
                 CentralConfig.API_UserAgent = iniFile.Read("API_UserAgent", "Config");
                 CentralConfig.API_Tenant = iniFile.Read("API_Tenant", "Config");
-                CentralConfig.User1 = iniFile.Read("7777", "Users");
-                CentralConfig.User2 = iniFile.Read("7765", "Users");
+               // CentralConfig.User1 = iniFile.Read("7777", "Users"); //Why is this hardcoded?
+                //CentralConfig.User2 = iniFile.Read("7765", "Users"); //Why is this hardcoded?
                 users = iniFile.GetUsers();
-                CentralConfig.API_Bearer = iniFile.GetToken().Split('=')[1];
+                //CentralConfig.API_Bearer = iniFile.GetToken().Split('=')[1];
                 CreateLogs(DateTime.Now.ToString() + " Central Configuration Read.");
             }
             catch
@@ -153,10 +153,12 @@ namespace SpeechLiveUploader
                                     CreateLogs(DateTime.Now.ToString() + ds2 + " copied from device to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
-                                    response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
-                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + response);
+                                    //response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
+                                    HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
+                                    string content = await response.Content.ReadAsStringAsync();
+                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + content);
 
-                                    if (response.StartsWith("Success"))
+                                    if (response.IsSuccessStatusCode)
                                     {
                                         CreateLogs(DateTime.Now.ToString() + ds2 + " successfully processed.");
                                     }
@@ -179,7 +181,7 @@ namespace SpeechLiveUploader
                             catch
                             {
                                 hasError = true;
-                                CreateLogs(DateTime.Now.ToString() + ds2 + " doesn�t copied from device to application");
+                                CreateLogs(DateTime.Now.ToString() + ds2 + " doesn\'t copied from device to application");
                             }
                         }
                         else
@@ -200,14 +202,14 @@ namespace SpeechLiveUploader
                     catch
                     {
                         hasError = true;
-                        CreateLogs(DateTime.Now.ToString() + ds2 + " doesn�t copied from device to application");
+                        CreateLogs(DateTime.Now.ToString() + ds2 + " doesn\'t copied from device to application");
                     }
                 }
             }
             else
             {
-                hasError = true;
-                CreateLogs(DateTime.Now.ToString() + " Connected device doesn�t contain supported file formats (ds2)");
+                //hasError = true;
+                CreateLogs(DateTime.Now.ToString() + " Connected device doesn\'t contain supported file formats (ds2)");
             }
 
             // === Handle DSS Files ===
@@ -240,10 +242,10 @@ namespace SpeechLiveUploader
                                     CreateLogs(DateTime.Now.ToString() + dss + " copied from device to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
-                                    response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
-                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + response);
-
-                                    if (response.StartsWith("Success"))
+                                    HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
+                                    string content = await response.Content.ReadAsStringAsync();
+                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + content);
+                                    if (response.IsSuccessStatusCode)
                                     {
                                         CreateLogs(DateTime.Now.ToString() + dss + " successfully processed.");
                                     }
@@ -266,7 +268,7 @@ namespace SpeechLiveUploader
                             catch
                             {
                                 hasError = true;
-                                CreateLogs(DateTime.Now.ToString() + dss + " doesn�t copied from device to application");
+                                CreateLogs(DateTime.Now.ToString() + dss + " wasn\'t copied from device to application");
                             }
                         }
                         else
@@ -287,14 +289,14 @@ namespace SpeechLiveUploader
                     catch
                     {
                         hasError = true;
-                        CreateLogs(DateTime.Now.ToString() + dss + " doesn�t copied from device to application");
+                        CreateLogs(DateTime.Now.ToString() + dss + "wasn\'t copied from device to application");
                     }
                 }
             }
             else
             {
-                hasError = true;
-                CreateLogs(DateTime.Now.ToString() + " Connected device doesn�t contain supported file formats (dss)");
+                //hasError = true;
+                CreateLogs(DateTime.Now.ToString() + " Connected device doesn\'t contain supported file formats (dss)");
             }
 
             // === Final Audio Cue ===

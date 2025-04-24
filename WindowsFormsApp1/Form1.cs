@@ -33,7 +33,7 @@ namespace WindowsFormsApp1
 
         private async void button1_Click(object sender, EventArgs e)
         {
-            string path = @"I:\\Speech Live Files\Ryan101.DS2";
+            string path = @"C:\Users\Ryan G\Downloads\DS2\12790094_240425_082524.DS2";
             const int HEADER_SIZE = 900;
 
             byte[] bytesFile = new byte[HEADER_SIZE];
@@ -112,7 +112,7 @@ namespace WindowsFormsApp1
                 did = match11.Groups[1].Value;
             }
 
-            var res = await PostHistoryAsync("psp_author2@vtexvsi.com", "0", worktype, did, @"I:\\Speech Live Files\Ryan101.DS2");
+            var res = await PostHistoryAsync("psp_author2@vtexvsi.com", "0", worktype, did, @"C:\Users\Ryan G\Downloads\DS2\12790094_240425_082524.DS2");
         }
 
         public static byte[] FromHex(string hex)

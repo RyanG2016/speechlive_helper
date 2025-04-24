@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpeechLiveUploader", "Speec
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "WindowsFormsApp1\WindowsFormsApp1.csproj", "{063723C9-D7B5-4382-A137-386892B670A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeechLiveUploader.Win", "SpeechLiveUploader.Win\SpeechLiveUploader.Win.csproj", "{8F535743-1FA3-42DB-8F65-0DBF36C218C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,14 +33,14 @@ Global
 		{063723C9-D7B5-4382-A137-386892B670A5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{063723C9-D7B5-4382-A137-386892B670A5}.Release|x64.ActiveCfg = Release|Any CPU
 		{063723C9-D7B5-4382-A137-386892B670A5}.Release|x64.Build.0 = Release|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Debug|x64.Build.0 = Debug|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Release|x64.ActiveCfg = Release|Any CPU
-		{8F535743-1FA3-42DB-8F65-0DBF36C218C0}.Release|x64.Build.0 = Release|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Debug|x64.Build.0 = Debug|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|x64.ActiveCfg = Release|Any CPU
+		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

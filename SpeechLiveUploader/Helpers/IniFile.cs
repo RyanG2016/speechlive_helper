@@ -26,8 +26,8 @@ public class IniFile
 
     public string Read(string Key, string Section = null)
     {
-        var RetVal = new StringBuilder(255);
-        GetPrivateProfileString(Section ?? EXE, Key, "", RetVal, 255, Path);
+        var RetVal = new StringBuilder(2048);
+        GetPrivateProfileString(Section ?? EXE, Key, "", RetVal, 2048, Path);
         return RetVal.ToString();
     }
 
@@ -62,10 +62,47 @@ public class IniFile
     {
         byte[] lpszReturnBuffer = new byte[2048];
         IniFile.GetPrivateProfileSection("Users", lpszReturnBuffer, 2048, this.Path);
-        string[] strArray = Encoding.ASCII.GetString(lpszReturnBuffer).Trim(char.MinValue).Split(char.MinValue, (StringSplitOptions)0);
+
+
+
+        // Convert byte array to string and remove null characters
+        string sectionData = Encoding.ASCII.GetString(lpszReturnBuffer).Trim('\0');
+
+
+        sectionData = sectionData.Replace("\0\0", "\n");
+
+        // Remove null characters that separate the entries, and split by new lines
+        sectionData = sectionData.Replace("\0", "");
+
+
+
+        // Split the section data by newlines to get individual user entries
+        string[] userEntries = sectionData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+
+
         List<string> users = new List<string>();
-        foreach (string str in strArray)
-            users.Add(str);
+
+
+
+        // Iterate through each user entry
+        foreach (var entry in userEntries)
+        {
+            // Split by '=' to separate user ID and email
+            string[] userPair = entry.Split(new[] { '=' }, 2); // Limit split to two parts
+
+
+
+            // Ensure there are exactly two parts (user ID and email)
+            if (userPair.Length == 2)
+            {
+                // Add user in the format ID=email
+                users.Add(userPair[0].Trim() + "=" + userPair[1].Trim());
+            }
+        }
+
+
+
         return users;
     }
 
