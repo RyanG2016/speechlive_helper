@@ -145,8 +145,6 @@ namespace SpeechLiveUploader
                             try
                             {
                                 CreateLogs(DateTime.Now.ToString() + " Calling Api");
-                                string response = "";
-
                                 await Task.Run(async () =>
                                 {
                                     File.Copy(ds2, Path.Combine(workingFolderPath, fileName), true);
@@ -156,19 +154,22 @@ namespace SpeechLiveUploader
                                     //response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
                                     HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
                                     string content = await response.Content.ReadAsStringAsync();
-                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + content);
-
+                                    
+                                    // Log full API response details
                                     if (response.IsSuccessStatusCode)
                                     {
-                                        CreateLogs(DateTime.Now.ToString() + ds2 + " successfully processed.");
+                                        CreateLogs($"{DateTime.Now} Api Success: {content}");
+                                        CreateLogs($"{DateTime.Now} {ds2} successfully processed.");
                                     }
                                     else
                                     {
                                         hasError = true;
-                                        CreateLogs(DateTime.Now.ToString() + ds2 + " found error for this file while calling api, check error folder.");
+                                        CreateLogs($"{DateTime.Now} Api Error - StatusCode: {(int)response.StatusCode} ({response.ReasonPhrase}), Content: {content}");
+                                        CreateLogs($"{DateTime.Now} {ds2} found error while calling api, check error folder.");
+
                                         File.Copy(ds2, Path.Combine(ManageFiles.ErrorFolderPath, fileName), true);
                                         File.Delete(Path.Combine(workingFolderPath, fileName));
-                                        CreateLogs(DateTime.Now.ToString() + ds2 + " copied from device to error folder.");
+                                        CreateLogs($"{DateTime.Now} {ds2} copied from device to error folder.");
                                     }
 
                                     if (LocalConfig.Delete_Files_After_Upload == "true")
@@ -234,7 +235,6 @@ namespace SpeechLiveUploader
                             try
                             {
                                 CreateLogs(DateTime.Now.ToString() + " Calling Api");
-                                string response = "";
 
                                 await Task.Run(async () =>
                                 {
@@ -244,18 +244,22 @@ namespace SpeechLiveUploader
 
                                     HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
                                     string content = await response.Content.ReadAsStringAsync();
-                                    CreateLogs(DateTime.Now.ToString() + " Api response : " + content);
+                                    
+                                    // Log full API response details
                                     if (response.IsSuccessStatusCode)
                                     {
-                                        CreateLogs(DateTime.Now.ToString() + dss + " successfully processed.");
+                                        CreateLogs($"{DateTime.Now} Api Success: {content}");
+                                        CreateLogs($"{DateTime.Now} {dss} successfully processed.");
                                     }
                                     else
                                     {
                                         hasError = true;
-                                        CreateLogs(DateTime.Now.ToString() + dss + " found error while calling api, check error folder.");
+                                        CreateLogs($"{DateTime.Now} Api Error - StatusCode: {(int)response.StatusCode} ({response.ReasonPhrase}), Content: {content}");
+                                        CreateLogs($"{DateTime.Now} {dss} found error while calling api, check error folder.");
+
                                         File.Copy(dss, Path.Combine(ManageFiles.ErrorFolderPath, fileName), true);
                                         File.Delete(Path.Combine(workingFolderPath, fileName));
-                                        CreateLogs(DateTime.Now.ToString() + dss + " copied from device to error folder.");
+                                        CreateLogs($"{DateTime.Now} {dss} copied from device to error folder.");
                                     }
 
                                     if (LocalConfig.Delete_Files_After_Upload == "true")
