@@ -114,11 +114,12 @@ public class ManageFiles
     /// <param name="input">Input string to extract from.</param>
     /// <param name="label">Label of the field to extract.</param>
     /// <returns>Extracted field or null if not found.</returns>
+
     private static string ExtractField(string input, string label)
     {
-        var regex = new Regex($@"(?<!\w){Regex.Escape(label)}\W*(\S+)");
+        var regex = new Regex($@"(?<!\w){Regex.Escape(label)}\W*((?:\S+\s*)+?)(?=\s*(Author|Work Type|Work type|DeviceId|$))", RegexOptions.IgnoreCase);
         var match = regex.Match(input);
-        return match.Success ? match.Groups[1].Value : null;
+        return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 
     /// <summary>
