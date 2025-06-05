@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-SpeechLiveUploader-77a2c9d2-97d0-445a-917a-71c4273417ac</UserSecretsId>
     <Platforms>AnyCPU;x64</Platforms>
-    <AssemblyVersion>1.0.5</AssemblyVersion>
-    <FileVersion>1.0.5</FileVersion>
+    <AssemblyVersion>1.1</AssemblyVersion>
+    <FileVersion>1.1</FileVersion>
     <ApplicationIcon>sl_favicon.ico</ApplicationIcon>
   </PropertyGroup>
 

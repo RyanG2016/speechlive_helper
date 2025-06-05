@@ -26,20 +26,23 @@ public class ApiHelper
 
         var fileContent = new ByteArrayContent(fileBytes);
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
-        form.Add(fileContent, "dictationFile", filePath);
+        string nameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+        string fileName = nameWithoutExtension + "-[" + LocalConfig.APP_Identifier + "]" + extension;
+        form.Add(fileContent, "dictationFile", fileName);
 
         form.Add(new StringContent(apiPriority), "priority");
         form.Add(new StringContent(worktype), "worktype");
 
         var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(300);
-        
+
         // Decrypt the API key before using it
         string decryptedApiKey = EncryptionHelper.DecryptApiKey(CentralConfig.API_Bearer);
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + decryptedApiKey);
         
         client.DefaultRequestHeaders.Add("App-Name", "SpeechLive Upload Helper");
-        client.DefaultRequestHeaders.Add("App-Version", "0.1");
+        client.DefaultRequestHeaders.Add("App-Version", "1.1");
         client.DefaultRequestHeaders.Add("Device-Id", deviceId);
         client.DefaultRequestHeaders.Add("SL-User", authorId);
         client.DefaultRequestHeaders.Add("User-Agent", CentralConfig.API_UserAgent);
