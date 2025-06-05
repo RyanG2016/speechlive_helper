@@ -25,4 +25,8 @@
     <Folder Include="Logs\" />
     <Folder Include="Working\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EncryptionLibrary\EncryptionLibrary.csproj" />
+  </ItemGroup>
 </Project>

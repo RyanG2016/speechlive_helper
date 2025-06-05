@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-
+using EncryptionService;
 
 public class ApiHelper
 {
@@ -14,24 +9,35 @@ public class ApiHelper
         // Create form
         var form = new MultipartFormDataContent();
 
-
-
         // Read the file bytes
         byte[] fileBytes = File.ReadAllBytes(filePath);
+        
+        // Check priority at offset 69
+        string apiPriority = "0"; // Default priority
+        if (fileBytes.Length > 69)
+        {
+            byte priorityByte = fileBytes[69];
+            if (priorityByte == 0x08)
+            {
+                apiPriority = "8";
+            }
+            // If priorityByte is 0x00, we keep the default "0"
+        }
+
         var fileContent = new ByteArrayContent(fileBytes);
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
         form.Add(fileContent, "dictationFile", filePath);
 
-
-
-        form.Add(new StringContent(priority), "priority");
+        form.Add(new StringContent(apiPriority), "priority");
         form.Add(new StringContent(worktype), "worktype");
-
-
 
         var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(300);
-        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + CentralConfig.API_Bearer);
+        
+        // Decrypt the API key before using it
+        string decryptedApiKey = EncryptionHelper.DecryptApiKey(CentralConfig.API_Bearer);
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + decryptedApiKey);
+        
         client.DefaultRequestHeaders.Add("App-Name", "SpeechLive Upload Helper");
         client.DefaultRequestHeaders.Add("App-Version", "0.1");
         client.DefaultRequestHeaders.Add("Device-Id", deviceId);

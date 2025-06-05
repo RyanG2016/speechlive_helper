@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "Windows
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiKeyEncryptor", "ApiKeyEncryptor\ApiKeyEncryptor.csproj", "{15733641-2171-4620-B45E-EECFCC43F780}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EncryptionLibrary", "EncryptionLibrary\EncryptionLibrary.csproj", "{5F777391-91F2-4141-9E5A-AFDE82D22FC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,22 @@ Global
 		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|x64.ActiveCfg = Release|Any CPU
 		{4C507DB3-9EBA-4628-8042-B5F4DF0BC4B8}.Release|x64.Build.0 = Release|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Debug|x64.Build.0 = Debug|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Release|x64.ActiveCfg = Release|Any CPU
+		{15733641-2171-4620-B45E-EECFCC43F780}.Release|x64.Build.0 = Release|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Debug|x64.Build.0 = Debug|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Release|x64.ActiveCfg = Release|Any CPU
+		{5F777391-91F2-4141-9E5A-AFDE82D22FC5}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

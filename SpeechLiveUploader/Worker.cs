@@ -85,7 +85,6 @@ namespace SpeechLiveUploader
             string AuthorId = "";
             bool hasError = false;
 
-
             try
             {
                 IniFile iniFile = new IniFile(configurationPath);
@@ -96,29 +95,64 @@ namespace SpeechLiveUploader
                 LocalConfig.Drive_Letter_To_Monitor = iniFile.Read("Drive_Letter_To_Monitor", "Config");
                 CreateLogs(DateTime.Now.ToString() + " Configuration File Read.");
             }
-            catch
+            catch (Exception ex)
             {
                 hasError = true;
-                CreateLogs(DateTime.Now.ToString() + " Configuration File Not Found.");
+                CreateLogs(DateTime.Now.ToString() + " Error reading local configuration file: " + ex.Message);
+                return; // Stop processing if local config can't be read
             }
 
             try
             {
+                if (!File.Exists(LocalConfig.Central_Config_UNC))
+                {
+                    hasError = true;
+                    CreateLogs(DateTime.Now.ToString() + " Central Configuration File not found at: " + LocalConfig.Central_Config_UNC);
+                    return; // Stop processing if central config doesn't exist
+                }
+
                 IniFile iniFile = new IniFile(LocalConfig.Central_Config_UNC);
                 CreateLogs(DateTime.Now.ToString() + " Central Configuration File Found And Loaded.");
-                CentralConfig.API_Bearer = iniFile.Read("API_Bearer", "Config");
+                
+                string encryptedApiKey = iniFile.Read("API_Bearer", "Config");
+                if (string.IsNullOrEmpty(encryptedApiKey))
+                {
+                    hasError = true;
+                    CreateLogs(DateTime.Now.ToString() + " API_Bearer not found in central configuration.");
+                    return; // Stop processing if API key is missing
+                }
+
+                CentralConfig.API_Bearer = encryptedApiKey;
                 CentralConfig.API_UserAgent = iniFile.Read("API_UserAgent", "Config");
                 CentralConfig.API_Tenant = iniFile.Read("API_Tenant", "Config");
-               // CentralConfig.User1 = iniFile.Read("7777", "Users"); //Why is this hardcoded?
-                //CentralConfig.User2 = iniFile.Read("7765", "Users"); //Why is this hardcoded?
+                
+                if (string.IsNullOrEmpty(CentralConfig.API_Tenant))
+                {
+                    hasError = true;
+                    CreateLogs(DateTime.Now.ToString() + " API_Tenant not found in central configuration.");
+                    return; // Stop processing if tenant URL is missing
+                }
+
                 users = iniFile.GetUsers();
-                //CentralConfig.API_Bearer = iniFile.GetToken().Split('=')[1];
-                CreateLogs(DateTime.Now.ToString() + " Central Configuration Read.");
+                if (users.Count == 0)
+                {
+                    CreateLogs(DateTime.Now.ToString() + " Warning: No users found in central configuration.");
+                }
+                
+                CreateLogs(DateTime.Now.ToString() + " Central Configuration Read Successfully.");
             }
-            catch
+            catch (Exception ex)
             {
                 hasError = true;
-                CreateLogs(DateTime.Now.ToString() + " Central Configuration File Not Found.");
+                CreateLogs(DateTime.Now.ToString() + " Error reading central configuration: " + ex.Message);
+                return; // Stop processing if central config can't be read
+            }
+
+            // If we got here with an error, stop processing
+            if (hasError)
+            {
+                CreateLogs(DateTime.Now.ToString() + " Stopping file processing due to configuration errors.");
+                return;
             }
 
             var GetDs2Files = new ManageFiles().GetDs2Files(DSFilesPath);
