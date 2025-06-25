@@ -24,6 +24,57 @@ public class ApiHelper
             // If priorityByte is 0x00, we keep the default "0"
         }
 
+        // Check dictatedDate at offset 38-50
+        string dictatedDate = ""; // Default empty
+        if (fileBytes.Length > 50)
+        {
+            try
+            {
+                // Extract bytes from offset 38 to 50 (13 bytes total)
+                byte[] dateBytes = new byte[13];
+                Array.Copy(fileBytes, 38, dateBytes, 0, 13);
+
+                // Convert to string and trim null characters
+                string rawDateString = System.Text.Encoding.UTF8.GetString(dateBytes).TrimEnd('\0');
+
+                // Check if it's a 12-digit packed date format (YYMMDDHHMMSS)
+                if (rawDateString.Length >= 12 && rawDateString.All(char.IsDigit))
+                {
+                    // Parse as packed format: YYMMDDHHMMSS
+                    string yearStr = rawDateString.Substring(0, 2);
+                    string monthStr = rawDateString.Substring(2, 2);
+                    string dayStr = rawDateString.Substring(4, 2);
+                    string hourStr = rawDateString.Substring(6, 2);
+                    string minuteStr = rawDateString.Substring(8, 2);
+                    string secondStr = rawDateString.Substring(10, 2);
+
+                    // Convert to integers
+                    int year = 2000 + int.Parse(yearStr);
+                    int month = int.Parse(monthStr);
+                    int day = int.Parse(dayStr);
+                    int hour = int.Parse(hourStr);
+                    int minute = int.Parse(minuteStr);
+                    int second = int.Parse(secondStr);
+
+                    DateTime parsedDate = new DateTime(year, month, day, hour, minute, second);
+                    dictatedDate = parsedDate.ToString("MMM d, yyyy, h:mm tt");
+                }
+                else
+                {
+                    // Try parsing as regular date string
+                    if (DateTime.TryParse(rawDateString, out DateTime parsedDate))
+                    {
+                        dictatedDate = parsedDate.ToString("MMM d, yyyy, h:mm tt");
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Handle any parsing errors
+                dictatedDate = "";
+            }
+        }
+
         var fileContent = new ByteArrayContent(fileBytes);
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
         string nameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
@@ -33,6 +84,10 @@ public class ApiHelper
 
         form.Add(new StringContent(apiPriority), "priority");
         form.Add(new StringContent(worktype), "worktype");
+        if (!string.IsNullOrEmpty(dictatedDate))
+        {
+            form.Add(new StringContent(dictatedDate), "custom5");
+        }
 
         var client = new HttpClient();
         client.Timeout = TimeSpan.FromSeconds(300);
