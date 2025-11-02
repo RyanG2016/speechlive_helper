@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**SpeechLive Upload Helper** is a Windows background service that monitors USB dictation devices, extracts audio files (.ds2/.dss), reads embedded metadata, and uploads them to a SpeechLive API endpoint. The application runs as a Windows Service with no GUI, providing audio feedback for success/failure.
+**SpeechLive Upload Helper** is a Windows background service that monitors USB dictation devices and Import folder, extracts audio files (.ds2/.dss), reads embedded metadata, and uploads them to a SpeechLive API endpoint. The application runs as a Windows Service with no GUI, providing audio feedback for success/failure.
+
+**Version:** 1.0.4
 
 ## Technology Stack
 
@@ -45,16 +47,31 @@ This is a Visual Studio solution with 5 projects:
 The `Worker` class is a `BackgroundService` that:
 
 1. **Monitors USB devices** using `IUsbEventWatcher` from Usb.Events library
-2. **On USB mount event**, triggers file processing pipeline:
+2. **Monitors Import folder** using `FileSystemWatcher` for manually added files
+3. **On USB mount event or Import folder file detection**, triggers file processing pipeline:
    - Load local config from `C:\ProgramData\SpeechLive Helper\localconfig.ini`
    - Load central config from UNC path specified in local config
-   - Scan USB drive for `.ds2` and `.dss` files
+   - Scan source (USB or Import) for `.ds2` and `.dss` files
    - Extract metadata from first 900 bytes of each file header
    - Map Author name to User ID via central config
-   - Copy file to Working directory with timestamped filename
+   - Copy file to Working directory with timestamped filename (unique conflict resolution for Import files)
    - Upload to SpeechLive API with metadata and custom headers
-   - On success: optionally delete from USB, play success sound
-   - On failure: copy to Error folder, play error sound
+   - On success:
+     - **USB files:** Optionally delete from USB based on config, copy to Working folder
+     - **Import files:** Delete from Import folder (already in Working folder)
+   - On failure: copy to Error folder, delete from Import (if Import source)
+   - Play success or error sound
+
+### Import Folder Feature (v1.0.4)
+
+Enables manual file processing without USB device:
+- **Location:** `C:\ProgramData\SpeechLive Helper\Import\`
+- **Use cases:** Retry failed uploads, remote testing, manual file submission
+- **Monitoring:** FileSystemWatcher detects new .ds2/.dss files in real-time
+- **File lock handling:** Waits up to 10 seconds (20 retries @ 500ms) for files to be fully written
+- **Conflict resolution:** Automatically renames files if same name exists in Working folder (appends _1, _2, etc.)
+- **Cleanup:** Import folder is always cleared after processing (success or failure)
+- **Startup check:** Processes any existing files in Import folder when service starts
 
 ### Configuration System
 
@@ -113,9 +130,10 @@ Uses AES-256 encryption with PBKDF2 key derivation (1000 iterations, SHA256). Th
 - Published output: `SpeechLiveUploader\bin\Release\net8.0\publish\win-x64\`
 
 **Runtime (created automatically):**
-- `C:\ProgramData\SpeechLive Helper\Working\` - Temporary storage during processing
+- `C:\ProgramData\SpeechLive Helper\Working\` - Successfully processed files
 - `C:\ProgramData\SpeechLive Helper\Error\` - Failed uploads
-- `C:\ProgramData\SpeechLive Helper\Logs\` - Daily logs named `{MMddyyyy}_Logfile.txt`
+- `C:\ProgramData\SpeechLive Helper\Import\` - Drop files here for manual processing (v1.0.4)
+- `C:\ProgramData\SpeechLive Helper\Logs\` - Log files with automatic 1MB rotation
 - `C:\ProgramData\SpeechLive Helper\localconfig.ini` - Local configuration
 - `C:\ProgramData\SpeechLive Helper\success.wav` / `error.wav` - Audio feedback files
 
@@ -154,30 +172,91 @@ The installer creates a Windows Service named "SpeechLive Upload Helper" and ins
 
 8. **USB event handler runs once per mount** - The ExecuteAsync method has commented-out loop logic; it processes files once when a USB device mounts, then waits.
 
+9. **FileSource enum (v1.0.4)** - Distinguishes between USB and Import file sources to apply different cleanup logic (USB respects Delete_Files_After_Upload config, Import always deletes).
+
+10. **FileSystemWatcher for Import folder (v1.0.4)** - Monitors `Created` and `Renamed` events, with file lock retry logic to ensure files are fully written before processing.
+
+11. **Unique filename generation (v1.0.4)** - `GetUniqueWorkingFileName()` prevents conflicts by appending numeric suffix (_1, _2, etc.) when Import files have same name as existing Working folder files.
+
+12. **Startup configuration verification (v1.0.4)** - `VerifyConfigurationOnStartup()` runs during service initialization to validate local and central config accessibility and log all settings.
+
+13. **Log file rotation (v1.0.4)** - `RotateLogFile()` automatically manages log file size by rotating at 1MB threshold, keeping only 1 backup copy.
+
 ## Version Management
 
-- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.2)
+- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.0.4)
 - Installer automatically extracts version from compiled executable
 - Update version in csproj before building for release
 
-## Logging
+## Logging (Enhanced in v1.0.4)
 
-All events are logged to daily files at `C:\ProgramData\SpeechLive Helper\Logs\{MMddyyyy}_Logfile.txt` including:
-- USB device detection
-- Configuration loading
-- File processing steps
+### Log Files
+
+Log files are stored at `C:\ProgramData\SpeechLive Helper\Logs\` with the naming format `{MMddyyyy}_Logfile.txt`.
+
+**Automatic Log Rotation:**
+- Rotates when log file reaches 1MB (1,048,576 bytes)
+- Renames current log to `{filename}.1.txt`
+- Deletes old backup (only keeps 1 backup file)
+- Logs rotation event in new file
+
+### Startup Configuration Verification (v1.0.4)
+
+On service startup, the application verifies and logs:
+- Local configuration file existence and path
+- Local config values (Central UNC, APP Identifier, Delete After Upload setting)
+- Central configuration file accessibility (tests network path and permissions)
+- API Bearer token presence (confirms without logging actual token for security)
+- API Tenant URL and User Agent
+- Number of user mappings loaded
+- Detailed error messages and troubleshooting hints if issues found
+
+### Enhanced Logging Features (v1.0.4)
+
+**File Processing Logs:**
+- File sizes in human-readable format (bytes/KB/MB) when detected
+- Processing batch summaries with file counts by type (.ds2/.dss)
+- Success/failure counts and total processing duration
+- Source type identification (USB device vs Import folder)
+
+**File Lock Retry Logging:**
+- Logs first retry attempt and every 5th attempt
+- Shows attempt number and total attempts (e.g., "attempt 5/20")
+- Logs successful availability after retries
+
+**Configuration Details:**
+- Number of user mappings loaded from central config
+- API Tenant, User Agent, and APP Identifier values
+- Logged both on startup and during each processing run
+
+**Standard Event Logging:**
+- USB device detection and mount events
+- Import folder file detection
+- Configuration file loading
+- File processing steps (copy, upload, delete)
 - Complete API responses (status codes and content)
-- Errors and exceptions
+- Errors and exceptions with full details
+- Filename conflict resolution (when Import files renamed)
 
 Thread-safe logging is implemented via `ManageFiles.CreateAndAppendLogs()`.
 
 ## Testing
 
 No automated tests exist in this solution. Testing is performed manually by:
+
+**USB Testing:**
 1. Running the service locally with `dotnet run`
 2. Connecting a USB device with test .ds2/.dss files
 3. Monitoring logs for proper processing
 4. Verifying API uploads and error handling
+
+**Import Folder Testing (v1.0.4):**
+1. Running the service locally with `dotnet run`
+2. Copying test .ds2/.dss files to `C:\ProgramData\SpeechLive Helper\Import\`
+3. Monitoring real-time detection and processing in logs
+4. Testing retry scenarios by copying files from Error folder to Import
+5. Verifying filename conflict resolution
+6. Testing remote file submission via network share
 
 ## Common Development Patterns
 
