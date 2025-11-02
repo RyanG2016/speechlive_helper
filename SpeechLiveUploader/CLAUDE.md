@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **SpeechLive Upload Helper** is a Windows background service that monitors USB dictation devices and Import folder, extracts audio files (.ds2/.dss), reads embedded metadata, and uploads them to a SpeechLive API endpoint. The application runs as a Windows Service with no GUI, providing audio feedback for success/failure.
 
-**Version:** 1.0.4
+**Version:** 1.0.5
 
 ## Technology Stack
 
@@ -182,13 +182,49 @@ The installer creates a Windows Service named "SpeechLive Upload Helper" and ins
 
 13. **Log file rotation (v1.0.4)** - `RotateLogFile()` automatically manages log file size by rotating at 1MB threshold, keeping only 1 backup copy.
 
+14. **Comprehensive exception logging (v1.0.5)** - All catch blocks log complete exception details including type, message, stack trace, and inner exceptions to aid troubleshooting.
+
+15. **API call debug logging (v1.0.5)** - Logs detailed information before/after each API call including all parameters (AuthorId, WorkType, DeviceId), request endpoints, and response status codes.
+
+16. **Default worktype handling (v1.0.5)** - ApiHelper automatically sets "OFFICE VISIT" as default worktype when empty, with logging notification.
+
+17. **File deletion error handling (v1.0.5)** - File deletion failures are caught and logged as warnings but don't fail the entire upload operation. Automatically clears ReadOnly attribute before deletion attempts to prevent permission errors.
+
+18. **Service identity logging (v1.0.5)** - Logs Windows identity of the service account during file operations to aid permission troubleshooting.
+
+## Version History
+
+### v1.0.5 (Current)
+**Enhanced Diagnostics & Error Handling**
+
+**New Features:**
+- **Comprehensive Exception Logging:** All catch blocks now log full exception details including type, message, stack trace, and inner exceptions
+- **API Call Debug Logging:** Detailed logging before/after API calls with parameters, endpoints, headers, and response status codes
+- **Metadata Validation Warnings:** Logs warnings for empty or missing Author, WorkType, or DeviceId fields
+- **Default WorkType:** Automatically sets "OFFICE VISIT" as worktype if empty, with logging
+- **File Deletion Diagnostics:** Logs service account identity, file attributes, and read-only status before deletion attempts
+- **Non-Fatal Deletion Errors:** File deletion failures no longer cause upload operations to fail; logged as warnings instead
+- **ReadOnly Attribute Handling:** Automatically clears ReadOnly attribute before file deletion to prevent permission errors
+
+**Bug Fixes:**
+- Fixed silent exception swallowing in catch blocks that prevented proper error diagnosis
+- Fixed UnauthorizedAccessException when deleting Import folder files with restricted attributes
+
+### v1.0.4
+**Import Folder & Enhanced Logging**
+- Import folder functionality for manual file processing
+- Enhanced logging with file sizes, batch summaries, and retry details
+- Startup configuration verification
+- Automatic log file rotation at 1MB
+- FileSource enum and unique filename generation
+
 ## Version Management
 
-- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.0.4)
+- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.0.5)
 - Installer automatically extracts version from compiled executable
 - Update version in csproj before building for release
 
-## Logging (Enhanced in v1.0.4)
+## Logging (Enhanced in v1.0.4, v1.0.5)
 
 ### Log Files
 
@@ -239,6 +275,35 @@ On service startup, the application verifies and logs:
 - Filename conflict resolution (when Import files renamed)
 
 Thread-safe logging is implemented via `ManageFiles.CreateAndAppendLogs()`.
+
+### Debug & Diagnostic Logging (v1.0.5)
+
+**Exception Details:**
+- Exception type, message, and full stack trace for all caught exceptions
+- Inner exception details when present
+- Context information (file path, operation being performed)
+
+**API Call Diagnostics:**
+- Pre-call logging with all parameters (AuthorId, WorkType, DeviceId, FilePath)
+- Request endpoint URL and headers (SL-User, Device-Id)
+- Form data contents (Priority, WorkType, DictatedDate)
+- Post-call response status codes
+- Success/failure outcomes with full API response content
+
+**Metadata Validation:**
+- Warnings for empty or missing Author fields
+- Warnings for empty WorkType fields (before applying default)
+- Warnings for missing or "Unknown" DeviceId values
+
+**File Deletion Diagnostics:**
+- Service account identity (WindowsIdentity.GetCurrent().Name)
+- File existence verification
+- File attributes (ReadOnly, Hidden, System, etc.)
+- ReadOnly attribute clearing operations
+- Deletion failure warnings with exception details
+
+**Default Value Logging:**
+- Logs when default "OFFICE VISIT" worktype is applied to empty fields
 
 ## Testing
 

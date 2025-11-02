@@ -4,8 +4,25 @@ using EncryptionService;
 
 public class ApiHelper
 {
+    /// <summary>
+    /// Gets the current log file path based on today's date.
+    /// </summary>
+    private string GetCurrentLogPath()
+    {
+        string logsFolderPath = ManageFiles.LogsFolderPath;
+        string fileName = DateTime.Now.Date.ToString("MMddyyyy") + "_Logfile.txt";
+        return Path.Combine(logsFolderPath, fileName);
+    }
+
     public async Task<HttpResponseMessage> PostHistoryAsync(string authorId, string priority, string worktype, string deviceId, string filePath)
     {
+        // Apply default worktype if empty
+        if (string.IsNullOrEmpty(worktype))
+        {
+            worktype = "OFFICE VISIT";
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} INFO: WorkType was empty, using default: '{worktype}'");
+        }
+
         // Create form
         var form = new MultipartFormDataContent();
 
@@ -106,15 +123,34 @@ public class ApiHelper
 
         try
         {
+            // Log request details
+            string endpoint = CentralConfig.API_Tenant + "/dictations";
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} DEBUG: Sending POST request to {endpoint}");
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} DEBUG: Request Headers - SL-User: {authorId}, Device-Id: {deviceId}");
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} DEBUG: Form Data - Priority: {apiPriority}, WorkType: '{worktype}', DictatedDate: '{dictatedDate}'");
+
             // Send the request and return the response
-            var response = await client.PostAsync(CentralConfig.API_Tenant + "/dictations", form);
+            var response = await client.PostAsync(endpoint, form);
+
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} DEBUG: Response received with status: {response.StatusCode}");
+
             return response;
         }
         catch (Exception ex)
         {
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} ERROR: Exception in PostHistoryAsync");
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} Exception Type: {ex.GetType().Name}");
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} Exception Message: {ex.Message}");
+            ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} Stack Trace: {ex.StackTrace}");
+
+            if (ex.InnerException != null)
+            {
+                ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} Inner Exception: {ex.InnerException.Message}");
+            }
+
             return new HttpResponseMessage(HttpStatusCode.InternalServerError)
             {
-                Content = new StringContent("Error occurred: " + ex.Message)
+                Content = new StringContent($"Error occurred: {ex.Message} | Type: {ex.GetType().Name}")
             };
         }
     }

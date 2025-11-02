@@ -456,6 +456,20 @@ namespace SpeechLiveUploader
                         CreateLogs($"Worktype: {objm.WorkType}");
                         CreateLogs($"Device ID: {objm.DeviceId}");
 
+                        // Validate metadata
+                        if (string.IsNullOrEmpty(objm.Author))
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: Author is empty for file {ds2}");
+                        }
+                        if (string.IsNullOrEmpty(objm.WorkType))
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: WorkType is empty for file {ds2} - this may cause API issues");
+                        }
+                        if (string.IsNullOrEmpty(objm.DeviceId) || objm.DeviceId == "Unknown")
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: DeviceId is '{objm.DeviceId}' for file {ds2}");
+                        }
+
                         AuthorId = users.FirstOrDefault(u => u.StartsWith(objm.Author + "="))?.Split('=')[1] ?? "";
 
                         if (!string.IsNullOrEmpty(AuthorId))
@@ -481,8 +495,13 @@ namespace SpeechLiveUploader
                                     CreateLogs(DateTime.Now.ToString() + ds2 + $" copied from {sourceType} to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
+                                    // Log API parameters before call
+                                    CreateLogs($"{DateTime.Now} DEBUG: API Parameters - AuthorId: {AuthorId}, Priority: 0, WorkType: '{objm.WorkType}' (empty={string.IsNullOrEmpty(objm.WorkType)}), DeviceId: {objm.DeviceId}, FilePath: {Path.Combine(workingFolderPath, workingFileName)}");
+
                                     //response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, fileName));
+                                    CreateLogs($"{DateTime.Now} DEBUG: About to call PostHistoryAsync");
                                     HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, workingFileName));
+                                    CreateLogs($"{DateTime.Now} DEBUG: PostHistoryAsync returned, Status: {response.StatusCode}");
                                     string content = await response.Content.ReadAsStringAsync();
 
                                     // Log full API response details
@@ -495,8 +514,33 @@ namespace SpeechLiveUploader
                                         // For Import files, delete from Import folder after successful upload
                                         if (source == FileSource.Import)
                                         {
-                                            File.Delete(ds2);
-                                            CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                            try
+                                            {
+                                                // Log diagnostic info before delete
+                                                CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {ds2}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: Service running as: {System.Security.Principal.WindowsIdentity.GetCurrent().Name}");
+
+                                                FileInfo fileInfo = new FileInfo(ds2);
+                                                CreateLogs($"{DateTime.Now} DEBUG: File exists: {fileInfo.Exists}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: File attributes: {fileInfo.Attributes}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: File is read-only: {fileInfo.IsReadOnly}");
+
+                                                // Clear read-only attribute if set
+                                                if (fileInfo.IsReadOnly)
+                                                {
+                                                    CreateLogs($"{DateTime.Now} DEBUG: Clearing read-only attribute");
+                                                    fileInfo.IsReadOnly = false;
+                                                }
+
+                                                File.Delete(ds2);
+                                                CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                            }
+                                            catch (Exception deleteEx)
+                                            {
+                                                CreateLogs($"{DateTime.Now} WARNING: Failed to delete {ds2} from import folder");
+                                                CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                                // Don't fail the whole operation just because cleanup failed
+                                            }
                                         }
                                     }
                                     else
@@ -513,8 +557,22 @@ namespace SpeechLiveUploader
                                         // For Import files, always delete from Import after copying to Error
                                         if (source == FileSource.Import)
                                         {
-                                            File.Delete(ds2);
-                                            CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                            try
+                                            {
+                                                CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {ds2} (after error)");
+                                                FileInfo fileInfo = new FileInfo(ds2);
+                                                if (fileInfo.IsReadOnly)
+                                                {
+                                                    fileInfo.IsReadOnly = false;
+                                                }
+                                                File.Delete(ds2);
+                                                CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                            }
+                                            catch (Exception deleteEx)
+                                            {
+                                                CreateLogs($"{DateTime.Now} WARNING: Failed to delete {ds2} from import folder");
+                                                CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                            }
                                         }
                                     }
 
@@ -526,10 +584,18 @@ namespace SpeechLiveUploader
                                     }
                                 });
                             }
-                            catch
+                            catch (Exception ex)
                             {
                                 hasError = true;
-                                CreateLogs(DateTime.Now.ToString() + ds2 + " doesn\'t copied from device to application");
+                                errorCount++;
+                                CreateLogs($"{DateTime.Now} ERROR: Exception during file processing for {ds2}");
+                                CreateLogs($"{DateTime.Now} Exception Type: {ex.GetType().Name}");
+                                CreateLogs($"{DateTime.Now} Exception Message: {ex.Message}");
+                                CreateLogs($"{DateTime.Now} Stack Trace: {ex.StackTrace}");
+                                if (ex.InnerException != null)
+                                {
+                                    CreateLogs($"{DateTime.Now} Inner Exception: {ex.InnerException.Message}");
+                                }
                             }
                         }
                         else
@@ -545,8 +611,22 @@ namespace SpeechLiveUploader
                             // For Import files, always delete after copying to Error
                             if (source == FileSource.Import)
                             {
-                                File.Delete(ds2);
-                                CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                try
+                                {
+                                    CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {ds2} (invalid author)");
+                                    FileInfo fileInfo = new FileInfo(ds2);
+                                    if (fileInfo.IsReadOnly)
+                                    {
+                                        fileInfo.IsReadOnly = false;
+                                    }
+                                    File.Delete(ds2);
+                                    CreateLogs($"{DateTime.Now} {ds2} deleted from import folder.");
+                                }
+                                catch (Exception deleteEx)
+                                {
+                                    CreateLogs($"{DateTime.Now} WARNING: Failed to delete {ds2} from import folder");
+                                    CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                }
                             }
                             // For USB files, handle deletion based on config
                             else if (LocalConfig.Delete_Files_After_Upload == "true")
@@ -556,10 +636,14 @@ namespace SpeechLiveUploader
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         hasError = true;
-                        CreateLogs(DateTime.Now.ToString() + ds2 + " doesn\'t copied from device to application");
+                        errorCount++;
+                        CreateLogs($"{DateTime.Now} ERROR: Outer exception processing {ds2}");
+                        CreateLogs($"{DateTime.Now} Exception Type: {ex.GetType().Name}");
+                        CreateLogs($"{DateTime.Now} Exception Message: {ex.Message}");
+                        CreateLogs($"{DateTime.Now} Stack Trace: {ex.StackTrace}");
                     }
                 }
             }
@@ -583,6 +667,20 @@ namespace SpeechLiveUploader
                         CreateLogs($"Author: {objm.Author}");
                         CreateLogs($"Worktype: {objm.WorkType}");
                         CreateLogs($"Device ID: {objm.DeviceId}");
+
+                        // Validate metadata
+                        if (string.IsNullOrEmpty(objm.Author))
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: Author is empty for file {dss}");
+                        }
+                        if (string.IsNullOrEmpty(objm.WorkType))
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: WorkType is empty for file {dss} - this may cause API issues");
+                        }
+                        if (string.IsNullOrEmpty(objm.DeviceId) || objm.DeviceId == "Unknown")
+                        {
+                            CreateLogs($"{DateTime.Now} WARNING: DeviceId is '{objm.DeviceId}' for file {dss}");
+                        }
 
                         AuthorId = users.FirstOrDefault(u => u.StartsWith(objm.Author + "="))?.Split('=')[1] ?? "";
 
@@ -610,7 +708,12 @@ namespace SpeechLiveUploader
                                     CreateLogs(DateTime.Now.ToString() + dss + $" copied from {sourceType} to application");
                                     CreateLogs(DateTime.Now.ToString() + " Calling Api As " + AuthorId);
 
+                                    // Log API parameters before call
+                                    CreateLogs($"{DateTime.Now} DEBUG: API Parameters - AuthorId: {AuthorId}, Priority: 0, WorkType: '{objm.WorkType}' (empty={string.IsNullOrEmpty(objm.WorkType)}), DeviceId: {objm.DeviceId}, FilePath: {Path.Combine(workingFolderPath, workingFileName)}");
+
+                                    CreateLogs($"{DateTime.Now} DEBUG: About to call PostHistoryAsync");
                                     HttpResponseMessage response = await new ApiHelper().PostHistoryAsync(AuthorId, "0", objm.WorkType, objm.DeviceId, Path.Combine(workingFolderPath, workingFileName));
+                                    CreateLogs($"{DateTime.Now} DEBUG: PostHistoryAsync returned, Status: {response.StatusCode}");
                                     string content = await response.Content.ReadAsStringAsync();
 
                                     // Log full API response details
@@ -623,8 +726,33 @@ namespace SpeechLiveUploader
                                         // For Import files, delete from Import folder after successful upload
                                         if (source == FileSource.Import)
                                         {
-                                            File.Delete(dss);
-                                            CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                            try
+                                            {
+                                                // Log diagnostic info before delete
+                                                CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {dss}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: Service running as: {System.Security.Principal.WindowsIdentity.GetCurrent().Name}");
+
+                                                FileInfo fileInfo = new FileInfo(dss);
+                                                CreateLogs($"{DateTime.Now} DEBUG: File exists: {fileInfo.Exists}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: File attributes: {fileInfo.Attributes}");
+                                                CreateLogs($"{DateTime.Now} DEBUG: File is read-only: {fileInfo.IsReadOnly}");
+
+                                                // Clear read-only attribute if set
+                                                if (fileInfo.IsReadOnly)
+                                                {
+                                                    CreateLogs($"{DateTime.Now} DEBUG: Clearing read-only attribute");
+                                                    fileInfo.IsReadOnly = false;
+                                                }
+
+                                                File.Delete(dss);
+                                                CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                            }
+                                            catch (Exception deleteEx)
+                                            {
+                                                CreateLogs($"{DateTime.Now} WARNING: Failed to delete {dss} from import folder");
+                                                CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                                // Don't fail the whole operation just because cleanup failed
+                                            }
                                         }
                                     }
                                     else
@@ -641,8 +769,22 @@ namespace SpeechLiveUploader
                                         // For Import files, always delete from Import after copying to Error
                                         if (source == FileSource.Import)
                                         {
-                                            File.Delete(dss);
-                                            CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                            try
+                                            {
+                                                CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {dss} (after error)");
+                                                FileInfo fileInfo = new FileInfo(dss);
+                                                if (fileInfo.IsReadOnly)
+                                                {
+                                                    fileInfo.IsReadOnly = false;
+                                                }
+                                                File.Delete(dss);
+                                                CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                            }
+                                            catch (Exception deleteEx)
+                                            {
+                                                CreateLogs($"{DateTime.Now} WARNING: Failed to delete {dss} from import folder");
+                                                CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                            }
                                         }
                                     }
 
@@ -654,10 +796,18 @@ namespace SpeechLiveUploader
                                     }
                                 });
                             }
-                            catch
+                            catch (Exception ex)
                             {
                                 hasError = true;
-                                CreateLogs(DateTime.Now.ToString() + dss + " wasn\'t copied from device to application");
+                                errorCount++;
+                                CreateLogs($"{DateTime.Now} ERROR: Exception during file processing for {dss}");
+                                CreateLogs($"{DateTime.Now} Exception Type: {ex.GetType().Name}");
+                                CreateLogs($"{DateTime.Now} Exception Message: {ex.Message}");
+                                CreateLogs($"{DateTime.Now} Stack Trace: {ex.StackTrace}");
+                                if (ex.InnerException != null)
+                                {
+                                    CreateLogs($"{DateTime.Now} Inner Exception: {ex.InnerException.Message}");
+                                }
                             }
                         }
                         else
@@ -673,8 +823,22 @@ namespace SpeechLiveUploader
                             // For Import files, always delete after copying to Error
                             if (source == FileSource.Import)
                             {
-                                File.Delete(dss);
-                                CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                try
+                                {
+                                    CreateLogs($"{DateTime.Now} DEBUG: Attempting to delete {dss} (invalid author)");
+                                    FileInfo fileInfo = new FileInfo(dss);
+                                    if (fileInfo.IsReadOnly)
+                                    {
+                                        fileInfo.IsReadOnly = false;
+                                    }
+                                    File.Delete(dss);
+                                    CreateLogs($"{DateTime.Now} {dss} deleted from import folder.");
+                                }
+                                catch (Exception deleteEx)
+                                {
+                                    CreateLogs($"{DateTime.Now} WARNING: Failed to delete {dss} from import folder");
+                                    CreateLogs($"{DateTime.Now} Delete Exception: {deleteEx.GetType().Name} - {deleteEx.Message}");
+                                }
                             }
                             // For USB files, handle deletion based on config
                             else if (LocalConfig.Delete_Files_After_Upload == "true")
@@ -684,10 +848,14 @@ namespace SpeechLiveUploader
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         hasError = true;
-                        CreateLogs(DateTime.Now.ToString() + dss + "wasn\'t copied from device to application");
+                        errorCount++;
+                        CreateLogs($"{DateTime.Now} ERROR: Outer exception processing {dss}");
+                        CreateLogs($"{DateTime.Now} Exception Type: {ex.GetType().Name}");
+                        CreateLogs($"{DateTime.Now} Exception Message: {ex.Message}");
+                        CreateLogs($"{DateTime.Now} Stack Trace: {ex.StackTrace}");
                     }
                 }
             }
