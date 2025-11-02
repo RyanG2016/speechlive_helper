@@ -55,7 +55,7 @@ Source: "{#MyAppPublishDirectory}*"; DestDir: "{app}"; Permissions: users-modify
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}";
+;Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}";
 
 
 [Run]
