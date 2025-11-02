@@ -122,3 +122,4 @@ UpgradeLog*.htm
 .vs/ProjectEvaluation/speechliveuploader.projects.v7.bin
 .vs/ProjectEvaluation/speechliveuploader.metadata.v7.bin
 /.vs
+SpeechLiveUploader/.claude/settings.local.json

@@ -5,6 +5,7 @@ public class ManageFiles
     public static string WorkingFolderPath = @"C:\\ProgramData\SpeechLive Helper\Working\";
     public static string ErrorFolderPath = @"C:\\ProgramData\SpeechLive Helper\Error\";
     public static string LogsFolderPath = @"C:\\ProgramData\SpeechLive Helper\Logs\";
+    public static string ImportFolderPath = @"C:\\ProgramData\SpeechLive Helper\Import\";
     public static string ConfigurationPath = @"C:\ProgramData\SpeechLive Helper\localconfig.ini";
     public static string ProcessCompletePath = @"C:\ProgramData\SpeechLive Helper\success.wav";
     public static string ErrorSoundPath = @"C:\ProgramData\SpeechLive Helper\error.wav"; // Added for failed sound
