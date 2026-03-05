@@ -1,0 +1,78 @@
+; Inno Setup Script for SpeechLive Upload Helper
+; Copy this file to speechlivehelper_prod.iss and update the values below
+
+; ============================================================================
+; CONFIGURE THESE VALUES FOR YOUR ENVIRONMENT
+; ============================================================================
+#define MyAppName "SpeechLive Upload Helper"
+#define MyAppPublisher "Your Company Name"
+#define MyAppURL "https://your-website.com"
+#define MyAppExeName "SpeechLiveUploader.exe"
+
+; Update this path to your local publish directory
+#define MyAppPublishDirectory "C:\Path\To\Your\InstallerFiles\"
+
+; Update this to your output directory
+#define MyOutputDir "C:\Path\To\Your\Output"
+
+; ============================================================================
+; DO NOT MODIFY BELOW THIS LINE (unless you know what you're doing)
+; ============================================================================
+#define MyAppVersion RemoveFileExt(GetVersionNumbersString(MyAppPublishDirectory+MyAppExeName))
+#define MyAppSetupIcon = "sl_favicon.ico"
+
+[Setup]
+; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
+; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+AppId={{997564CA-D217-49DE-A04A-DB275D5917A0}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+SetupIconFile=compiler:{#MyAppSetupIcon}
+UninstallDisplayIcon="{#MyAppPublishDirectory}{#MyAppSetupIcon}"
+DefaultDirName="{autoappdata}\SpeechLive Helper"
+DisableProgramGroupPage=yes
+DisableDirPage=yes
+DisableReadyPage=no
+DisableFinishedPage=yes
+DisableStartupPrompt=yes
+; Remove the following line to run in administrative install mode (install for all users.)
+;PrivilegesRequired=lowest
+OutputBaseFilename=slhsetup
+Compression=lzma2/max
+SolidCompression=yes
+WizardStyle=modern
+WizardImageFile=compiler:slh_sidebar.bmp
+WizardSmallImageFile=compiler:SpeechLive_Helper_Icon.bmp
+OutputDir={#MyOutputDir}
+; Uncomment and configure if you have a code signing certificate
+;SignTool=YourSignTool $f
+ChangesAssociations=no
+
+[Registry]
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+;Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
+[Files]
+Source: "{#MyAppPublishDirectory}{#MyAppExeName}"; DestDir: "{app}"; Permissions: users-modify; Flags: ignoreversion
+; NOTE: If you store Archive folder in same folder as source, you must remove the recursesubdirs and createallsubdirs or they will get packaged
+Source: "{#MyAppPublishDirectory}*"; DestDir: "{app}"; Permissions: users-modify; Flags: ignoreversion
+; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+
+[Icons]
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+;Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}";
+
+[Run]
+Filename: {sys}\sc.exe; Parameters: "create ""SpeechLive Upload Helper"" binPath= ""{app}\SpeechLiveUploader.exe""" ; Flags: runhidden
+
+[UninstallRun]
+Filename: {sys}\sc.exe; Parameters: "stop ""SpeechLive Upload Helper""" ; Flags: runhidden
+Filename: {sys}\sc.exe; Parameters: "delete ""SpeechLive Upload Helper""" ; Flags: runhidden
