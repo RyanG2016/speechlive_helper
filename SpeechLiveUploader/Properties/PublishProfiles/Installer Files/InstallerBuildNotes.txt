@@ -1,0 +1,11 @@
+Last updated 28APR2025 for 1.0.4
+**To build installer**
+
+1. Publish the source code (Make sure publish the SpeechLiveUploader and not any other folder. Right click on SpeechLiveUploader and Publish)
+2. You should have a folder on your Desktop called SpeechliveHelper with 2 folders: Installer Files and Output. You can update the .iss file if needed to change the location
+3. If the Installer Files folder has appsettings.Development.json, appsetting.json and SpeechLiveUploader.exe, delete those and replace with the published files from step 1. NOTE: Delete the symbols file (.pdb)
+4. Copy the files from the SourceFiles to the Installer Files directory if they don't exist.
+5. Clear the Output folder if anything in there
+6.Run the innosetup. Note: Don't build and run, just build. make sure to have your signing key plugged in
+7. When installer is completed, make sure the output file (slhsetup.exe) has a version of the one you built (ie: 1.0.4)
+8. Test upgrading (Install over existing) and new install.
