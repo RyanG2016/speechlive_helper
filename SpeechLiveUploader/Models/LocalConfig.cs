@@ -16,5 +16,7 @@ public class LocalConfig
     public static string Vitalytics_Enabled { get; set; }
     public static string Vitalytics_DataMode { get; set; }
     public static string Log_Retention_Days { get; set; }
+    public static string STATIC_WORKTYPE { get; set; }
+    public static string USE_STATIC_WORKTYPE { get; set; }
 }
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **SpeechLive Upload Helper** is a Windows background service that monitors USB dictation devices and Import folder, extracts audio files (.ds2/.dss), reads embedded metadata, and uploads them to a SpeechLive API endpoint. The application runs as a Windows Service with no GUI, providing audio feedback for success/failure.
 
-**Version:** 1.0.17
+**Version:** 1.0.18
 
 ## Technology Stack
 
@@ -90,6 +90,8 @@ APP_Identifier=LocationCode
 Delete_Files_After_Upload=true
 Vitalytics_Enabled=true
 Vitalytics_DataMode=prod
+STATIC_WORKTYPE=Office Visit
+USE_STATIC_WORKTYPE=true
 ```
 
 **Central Config** (shared UNC path):
@@ -259,9 +261,33 @@ The installer creates a Windows Service named "SpeechLive Upload Helper" and ins
 
 28. **USB disconnection during file enumeration (v1.0.16, improved v1.0.17)** - Initial `GetDs2Files()` and `GetDsFiles()` calls wrapped in try-catch to handle USB disconnection during `Directory.GetFiles()`. Added "parameter is incorrect" to `IsUsbDisconnectionError()` detection. In v1.0.17, replaced `when` exception filter with standard catch to prevent uncaught exceptions in `async void` method, and added `DriveInfo.IsReady` pre-check before enumeration.
 
+29. **Static worktype override (v1.0.18)** - `USE_STATIC_WORKTYPE` and `STATIC_WORKTYPE` settings in localconfig.ini allow overriding the extracted worktype with a fixed value. This addresses Philips API requiring valid worktypes. When enabled (default), the extracted worktype is still logged but the static value is sent to the API. Substitution is logged for audit purposes.
+
 ## Version History
 
-### v1.0.17 (Current)
+### v1.0.18 (Current)
+**Static Worktype Override**
+
+**New Features:**
+- **Static Worktype Configuration:** Added ability to override extracted worktype with a configurable static value. This addresses Philips API change that now requires worktype to be a valid value in the system.
+- **USE_STATIC_WORKTYPE setting:** When set to "true" (default), the service will always send the value from `STATIC_WORKTYPE` instead of the extracted worktype.
+- **STATIC_WORKTYPE setting:** The worktype value to send to the API (default: "Office Visit"). Spaces are handled correctly.
+- **Substitution Logging:** When static worktype is used, logs both the extracted worktype and the static value being sent for audit/debugging purposes.
+
+**Configuration Changes:**
+- Added `STATIC_WORKTYPE` to LocalConfig (default: "Office Visit")
+- Added `USE_STATIC_WORKTYPE` to LocalConfig (default: "true")
+
+**Technical Details:**
+- Extracted worktype is still read from file metadata for logging purposes
+- Substitution logged as: `INFO: Using static worktype 'Office Visit' (extracted worktype was 'PATIENT NOTE')`
+- When extracted worktype is empty, it's logged as "(empty)" in the substitution message
+- Settings are read from localconfig.ini [Config] section
+
+**Bug Fixes:**
+- **Fixed EncryptionLibrary to use hardcoded key:** Reverted EncryptionHelper.cs to use the hardcoded secret key `SpeechLiveSecretKey2024` instead of looking for an external `secrets.json` file. This matches production v1.0.16 behavior and ensures compatibility with existing installations.
+
+### v1.0.17
 **Robust USB Enumeration Error Handling**
 
 **Bug Fixes:**
@@ -467,7 +493,7 @@ The installer creates a Windows Service named "SpeechLive Upload Helper" and ins
 
 ## Version Management
 
-- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.0.11)
+- Assembly version is set in `SpeechLiveUploader.csproj` (currently 1.1.1)
 - Installer automatically extracts version from compiled executable
 - Update version in csproj before building for release
 

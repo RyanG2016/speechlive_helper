@@ -121,6 +121,15 @@ namespace SpeechLiveUploader
                     CreateLogs($"{DateTime.Now} Local Config - Default Author ID: Not configured");
                 }
 
+                // Read static worktype settings
+                string staticWorktype = localIniFile.Read("STATIC_WORKTYPE", "Config");
+                string useStaticWorktype = localIniFile.Read("USE_STATIC_WORKTYPE", "Config");
+                string staticWorktypeValue = string.IsNullOrEmpty(staticWorktype) ? "Office Visit" : staticWorktype;
+                string useStaticWorktypeValue = string.IsNullOrEmpty(useStaticWorktype) ? "true" : useStaticWorktype.ToLower();
+
+                CreateLogs($"{DateTime.Now} Local Config - Static Worktype: {staticWorktypeValue}");
+                CreateLogs($"{DateTime.Now} Local Config - Use Static Worktype: {useStaticWorktypeValue}");
+
                 // Check central configuration
                 if (string.IsNullOrEmpty(centralConfigPath))
                 {
@@ -932,6 +941,13 @@ namespace SpeechLiveUploader
                 // Read ALWAYS_FALLBACK_TO_DEFAULT_AUTHORID with default of "false"
                 string alwaysFallback = iniFile.Read("ALWAYS_FALLBACK_TO_DEFAULT_AUTHORID", "Config");
                 LocalConfig.ALWAYS_FALLBACK_TO_DEFAULT_AUTHORID = string.IsNullOrEmpty(alwaysFallback) ? "false" : alwaysFallback.ToLower();
+
+                // Read static worktype settings (default: STATIC_WORKTYPE="Office Visit", USE_STATIC_WORKTYPE="true")
+                string staticWorktype = iniFile.Read("STATIC_WORKTYPE", "Config");
+                LocalConfig.STATIC_WORKTYPE = string.IsNullOrEmpty(staticWorktype) ? "Office Visit" : staticWorktype;
+
+                string useStaticWorktype = iniFile.Read("USE_STATIC_WORKTYPE", "Config");
+                LocalConfig.USE_STATIC_WORKTYPE = string.IsNullOrEmpty(useStaticWorktype) ? "true" : useStaticWorktype.ToLower();
 
                 CreateLogs(DateTime.Now.ToString() + " Configuration File Read.");
                 if (!string.IsNullOrEmpty(LocalConfig.DEFAULT_AUTHOR_ID))

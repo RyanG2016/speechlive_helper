@@ -16,11 +16,26 @@ public class ApiHelper
 
     public async Task<HttpResponseMessage> PostHistoryAsync(string authorId, string priority, string worktype, string deviceId, string filePath)
     {
+        // Store the extracted worktype for logging
+        string extractedWorktype = worktype;
+
         // Apply default worktype if empty
         if (string.IsNullOrEmpty(worktype))
         {
             worktype = "OFFICE VISIT";
+            extractedWorktype = "(empty)";
             ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} INFO: WorkType was empty, using default: '{worktype}'");
+        }
+
+        // Check if static worktype should be used (Philips API now requires valid worktype)
+        if (LocalConfig.USE_STATIC_WORKTYPE?.ToLower() == "true" && !string.IsNullOrEmpty(LocalConfig.STATIC_WORKTYPE))
+        {
+            string staticWorktype = LocalConfig.STATIC_WORKTYPE;
+            if (worktype != staticWorktype)
+            {
+                ManageFiles.CreateAndAppendLogs(GetCurrentLogPath(), $"{DateTime.Now} INFO: Using static worktype '{staticWorktype}' (extracted worktype was '{extractedWorktype}')");
+                worktype = staticWorktype;
+            }
         }
 
         // Create form
